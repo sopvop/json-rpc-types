@@ -1,0 +1,19 @@
+.cabal-linux:
+  cache:
+    key: cabal-cache
+    paths:
+      - .cabal/store
+      - .cabal/packages
+  script:
+    - |
+      export CABAL_DIR=$(pwd)/.cabal
+      cabal v2-update
+      cabal v2-build
+
+ghc 8.4 hackage:
+  extends: .cabal-linux
+  image: haskell:8.4
+
+ghc 8.6 hackage:
+  extends: .cabal-linux
+  image: haskell:8.6
