@@ -20,8 +20,8 @@ library
                   , GeneralizedNewtypeDeriving
                   , OverloadedStrings
   build-depends: base                 >= 4.11.0.0 && < 5
-               , aeson                ^>= 1.4.2.0
-               , hashable             ^>= 1.2.7.0
+               , aeson                >= 1.4.2.0 && < 1.6
+               , hashable             >= 1.2.7.0 && < 1.4
                , text                 ^>= 1.2.3.1
                , bytestring           ^>= 0.10.8.2
                , unordered-containers ^>= 0.2.9.0
