@@ -12,10 +12,12 @@ module Network.JsonRpc.Server
     , module X
     )  where
 
+import           Control.Monad.IO.Class (MonadIO, liftIO)
 import           Data.Aeson (FromJSON, ToJSON, Value)
 import qualified Data.Aeson as J
 import qualified Data.Aeson.Types as J
 import qualified Data.ByteString.Lazy as LB
+import           Data.Foldable
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 import           Data.Maybe (fromMaybe)
@@ -38,29 +40,45 @@ type Message = LB.ByteString
 type MethodsTable c m = HashMap MethodName (Method c m)
 
 -- | Method is just a request to response function.
-type Method c m = c -> Request Value -> m (Maybe Message)
+type Method c m = (Message -> IO ()) -> c -> Request Value -> m ()
 
 -- | Constructs 'MethodsTable'
 methodsTable :: [(MethodName, Method c m)] -> MethodsTable c m
 methodsTable = HashMap.fromList
 
 -- | Construct a 'Method' from monadic function.
-method :: ( FromJSON req
-          , ToJSON err
-          , ToJSON resp
-          , Monad m )
-       => Text
-       -> (c -> req -> m (Either (Error err) resp))
-       -> (MethodName, Method c m)
-method nm m = (MethodName nm, go)
+method
+  :: FromJSON req
+  => ToJSON err
+  => ToJSON resp
+  => MonadIO m
+  => Text
+  -> (c -> req -> m (Either (Error err) resp))
+  -> (MethodName, Method c m)
+method nm m = methodAsync nm go
  where
-   go c req = case parseParams req of
-        Left e -> pure $ Just (J.encode e)
+   go sendMesg c req = do
+     m c req >>= liftIO . sendMesg
+
+methodAsync
+  :: FromJSON req
+  => ToJSON err
+  => ToJSON resp
+  => MonadIO m
+  => Text
+  -> ((Either (Error err) resp -> IO ()) -> con -> req -> m ())
+  -> (MethodName, Method con m)
+methodAsync nm m = (MethodName nm, go)
+ where
+   go sendMsg c req = case parseParams req of
+        Left e -> liftIO $ sendMsg (J.encode e)
         Right parsedReq -> do
-           result <- m c parsedReq
-           pure $ case requestId req of
-             Nothing -> Nothing
-             Just rid -> Just . J.encode $ Response rid (Just result)
+           m send c parsedReq
+     where
+       send result = case requestId req of
+         Nothing -> pure ()
+         Just rid -> sendMsg . J.encode $ Response rid (Just result)
+
 
 -- | Parses method params from request
 parseParams :: FromJSON a
@@ -78,19 +96,29 @@ nothingAtAll :: Maybe ()
 nothingAtAll = Nothing
 
 -- | Decode and execute request.
-runRequest :: Monad m => c -> LB.ByteString -> MethodsTable c m -> m (Maybe Message)
-runRequest c lbs table = case decodeRequest lbs of
-      Left e -> pure $ Just e
-      Right req -> executeRequest table c req
+runRequest
+  :: MonadIO m
+  => (Message -> IO ())
+  -> c
+  -> LB.ByteString
+  -> MethodsTable c m
+  -> m ()
+runRequest send c lbs table = case decodeRequest lbs of
+      Left e -> liftIO $ send e
+      Right req -> executeRequest table send c req
 
 -- | Execute parsed request
-executeRequest :: Applicative m
-               => MethodsTable c m
-               -> c
-               -> Request Value
-               -> m (Maybe Message)
-executeRequest table c req =
-    either id id <$> traverse (\f -> f c req) (findMethod table req)
+executeRequest
+  :: MonadIO m
+  => MethodsTable c m
+  -> (Message -> IO ())
+  -> c
+  -> Request Value
+  -> m ()
+executeRequest table send c req =
+  case findMethod table req of
+    Left msg -> for_ msg $ liftIO . send
+    Right f -> f send c req
 
 -- | Decode request from json stream
 decodeRequest :: FromJSON b => LB.ByteString -> Either Message b
