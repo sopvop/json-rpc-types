@@ -5,6 +5,7 @@ module Network.JsonRpc.Server
     , methodsTable
     , Method
     , method
+    , methodAsync
     , executeRequest
     , runRequest
     , Message
