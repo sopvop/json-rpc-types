@@ -1,25 +1,25 @@
 {-# LANGUAGE OverloadedStrings #-}
 -- | Module to help construct errors which may occur in json-rpc calls
 module Network.JsonRpc.Errors
-    ( -- * Errors
-      parseError
-    , invalidRequest
-    , methodNotFound
-    , invalidParams
-    , internalError
-    , serverError
-    , parseErrorCode
-    , invalidRequestCode
-    , invalidParamsCode
-    , internalErrorCode
-      -- * Re-exports from "SmAssetMan.Network.JsonRpc.Types"
-    , ErrorCode (..)
-    , Error
-    , RequestId
-    ) where
+  ( -- * Errors
+    parseError
+  , invalidRequest
+  , methodNotFound
+  , invalidParams
+  , internalError
+  , serverError
+  , parseErrorCode
+  , invalidRequestCode
+  , invalidParamsCode
+  , internalErrorCode
+  -- * Re-exports from "SmAssetMan.Network.JsonRpc.Types"
+  , ErrorCode (..)
+  , Error
+  , RequestId
+  ) where
 
 
-import           Network.JsonRpc.Types
+import Network.JsonRpc.Types
     (Error (..), ErrorCode (..), RequestId (..), Response (..))
 
 

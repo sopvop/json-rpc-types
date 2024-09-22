@@ -1,30 +1,28 @@
-{-# LANGUAGE BangPatterns               #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE OverloadedStrings          #-}
 -- | Module defining core types used in json-rpc
 module Network.JsonRpc.Types
-    ( RequestId (..)
-    , MethodName (..)
-    , Request (..)
-    , Response (..)
-    , Notification (..)
-    , ErrorCode (..)
-    , Error (..)
-    ) where
+  ( RequestId (..)
+  , MethodName (..)
+  , Request (..)
+  , Response (..)
+  , Notification (..)
+  , ErrorCode (..)
+  , Error (..)
+  ) where
 
-import           Data.Aeson
+import Data.Aeson
     (FromJSON (..), ToJSON (..), Value (String), object, pairs, withObject,
     (.:), (.:?), (.=))
-import           Data.Hashable (Hashable (..))
-import           Data.Int (Int64)
-import           Data.Maybe (catMaybes)
-import           Data.Semigroup ((<>))
-import           Data.Text (Text)
+import Data.Hashable (Hashable (..))
+import Data.Int      (Int64)
+import Data.Maybe    (catMaybes)
+import Data.Text     (Text)
+import GHC.Generics  (Generic)
 
 -- | Request id, either Int53 or string
-data RequestId = RequestIdInt {-# UNPACK #-} !Int64
-               | RequestIdString {-# UNPACK #-} !Text
-               deriving (Show, Eq, Ord)
+data RequestId
+  = RequestIdInt {-# UNPACK #-} !Int64
+  | RequestIdString {-# UNPACK #-} !Text
+  deriving stock (Show, Eq, Ord)
 
 instance Hashable RequestId where
   hashWithSalt salt (RequestIdInt i) =
@@ -34,31 +32,32 @@ instance Hashable RequestId where
 
 instance FromJSON RequestId where
   parseJSON v = case v of
-                  String t -> pure (RequestIdString t)
-                  o        -> RequestIdInt <$> parseJSON o
+    String t -> pure (RequestIdString t)
+    o        -> RequestIdInt <$> parseJSON o
   {-# INLINEABLE parseJSON #-}
 
 instance ToJSON RequestId where
   toJSON r = case r of
-               RequestIdInt !i -> toJSON i
-               RequestIdString !t-> toJSON t
+    RequestIdInt !i -> toJSON i
+    RequestIdString !t-> toJSON t
   toEncoding r = case r of
-                   RequestIdInt !i -> toEncoding i
-                   RequestIdString !t-> toEncoding t
+    RequestIdInt !i -> toEncoding i
+    RequestIdString !t-> toEncoding t
   {-# INLINE toJSON #-}
   {-# INLINE toEncoding #-}
 
 -- | A name of a called method
 newtype MethodName = MethodName { unMethodName :: Text }
-  deriving (Show, Eq, Ord, FromJSON, ToJSON, Hashable)
+  deriving stock (Show, Eq, Ord)
+  deriving newtype (FromJSON, ToJSON, Hashable)
 
 
 -- | A serialised function call comming from client.
 data Request a = Request
-    { requestId     :: !(Maybe RequestId)
-    , requestMethod :: !MethodName
-    , requestParams :: !(Maybe a)
-    } deriving (Show)
+  { requestId     :: !(Maybe RequestId)
+  , requestMethod :: !MethodName
+  , requestParams :: !(Maybe a)
+  } deriving stock (Show, Generic)
 
 instance FromJSON a => FromJSON (Request a) where
   parseJSON = withObject "json-rpc call" $ \o ->
@@ -68,9 +67,10 @@ instance FromJSON a => FromJSON (Request a) where
 
 instance ToJSON a => ToJSON (Request a) where
   toJSON (Request cid m ps) =
-      object $ ("jsonrpc", String "2.0") : catMaybes [("id" .=) <$> cid
-                                                       , Just ("method" .= m)
-                                                       , ("params" .=) <$> ps ]
+      object $ ("jsonrpc", String "2.0")
+        : catMaybes [ ("id" .=) <$> cid
+                    , Just ("method" .= m)
+                    , ("params" .=) <$> ps ]
 
   toEncoding (Request cid m ps) =
       pairs $ "jsonrpc" .= ("2.0" :: Text)
@@ -86,25 +86,25 @@ instance ToJSON a => ToJSON (Request a) where
 data Notification a = Notification
     { notifMethod :: !MethodName
     , notifParams :: !a
-    } deriving (Show)
+    } deriving stock (Show)
 
 instance ToJSON a => ToJSON (Notification a) where
   toJSON (Notification meth params) =
-      object [("jsonrpc", String "2.0")
-             ,("method", String (unMethodName meth))
-             ,"params" .= params]
+    object [("jsonrpc", String "2.0")
+           ,("method", String (unMethodName meth))
+           ,"params" .= params]
   toEncoding (Notification meth params) =
-      pairs $ "jsonrpc" .= ("2.0"::Text)
-           <> "method" .= meth
-           <> "params" .= params
+    pairs $ "jsonrpc" .= ("2.0"::Text)
+          <> "method" .= meth
+          <> "params" .= params
   {-# INLINABLE toEncoding #-}
   {-# INLINABLE toJSON #-}
 
 -- | A result of successeful function call returned to client
 data Response e a = Response
-    { responseId     :: !RequestId
-    , responseResult :: !(Maybe (Either (Error e) a))
-    } deriving (Show)
+  { responseId     :: !RequestId
+  , responseResult :: !(Maybe (Either (Error e) a))
+  } deriving stock (Show)
 
 instance (ToJSON e, ToJSON a) => ToJSON (Response e a) where
   toJSON (Response !cid !dat) = object
@@ -139,15 +139,16 @@ instance (FromJSON e, FromJSON a) => FromJSON (Response e a) where
 
 -- | And error code returned with 'Error' response.
 newtype ErrorCode = ErrorCode { unErrorCode :: Int }
-    deriving (Eq, Ord, Show, FromJSON, ToJSON, Hashable)
+  deriving stock (Eq, Ord, Show)
+  deriving newtype (FromJSON, ToJSON, Hashable)
 
 
 -- | Response with an error with optional data.
 data Error e = Error
-    { errorCode    :: !ErrorCode
-    , errorMessage :: !Text
-    , errorData    :: !(Maybe e)
-    } deriving (Show)
+  { errorCode    :: !ErrorCode
+  , errorMessage :: !Text
+  , errorData    :: !(Maybe e)
+  } deriving stock (Show, Generic)
 
 instance (ToJSON a) => ToJSON (Error a) where
   toJSON (Error !code !msg !dat) = object

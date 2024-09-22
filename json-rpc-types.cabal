@@ -1,30 +1,47 @@
-cabal-version:       2.2
-name:                json-rpc-types
-version:             0.2.0.0
+cabal-version:      3.4
+name:               json-rpc-types
+version:            0.3.0.0
+
 -- synopsis:
 -- description:
 -- bug-reports:
-license:             Apache-2.0
-license-file:        LICENSE
-author:              Leonid Onokhov
-maintainer:          sopvop@gmail.com
+license:            Apache-2.0
+license-file:       LICENSE
+author:             Leonid Onokhov
+maintainer:         sopvop@gmail.com
+
 -- copyright:
 -- category:
-extra-source-files:  CHANGELOG.md
+extra-source-files: CHANGELOG.md
 
 library
-  exposed-modules: Network.JsonRpc.Errors
-                 , Network.JsonRpc.Server
-                 , Network.JsonRpc.Types
-  other-extensions: BangPatterns
-                  , GeneralizedNewtypeDeriving
-                  , OverloadedStrings
-  build-depends: base                 >= 4.11.0.0 && < 5
-               , aeson                >= 1.4.2.0 && < 2.3
-               , hashable             >= 1.2.7.0 && < 1.5
-               , text                 ^>= 1.2.3.1
-               , bytestring           >= 0.10.8.2 && < 0.12
-               , unordered-containers ^>= 0.2.9.0
-  hs-source-dirs:      src
-  default-language:    Haskell2010
-  ghc-options: -Wall -funbox-strict-fields -fno-warn-name-shadowing
+  exposed-modules:
+    Network.JsonRpc.Errors
+    Network.JsonRpc.Server
+    Network.JsonRpc.Types
+
+  default-extensions:
+    BangPatterns
+    DeriveAnyClass
+    DeriveGeneric
+    DerivingStrategies
+    GeneralizedNewtypeDeriving
+    ImportQualifiedPost
+    OverloadedStrings
+
+  build-depends:
+    , aeson                 >=2.1     && <2.3
+    , base                  >=4.18    && <5
+    , bytestring            >=0.11.5  && <0.13
+    , hashable              >=1.4.4.0 && <1.5
+    , text                  >=2.0.2   && <2.1
+    , unordered-containers  ^>=0.2.20
+
+  hs-source-dirs:     src
+  default-language:   Haskell2010
+  ghc-options:
+    -funbox-strict-fields -Wall -Wcompat -Widentities
+    -Wincomplete-uni-patterns -Wincomplete-record-updates
+    -Wredundant-constraints -Wnoncanonical-monad-instances
+    -Wmissing-export-lists -Wpartial-fields
+    -Wmissing-deriving-strategies -Wunused-packages

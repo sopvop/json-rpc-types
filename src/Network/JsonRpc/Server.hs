@@ -1,37 +1,36 @@
 {-# LANGUAGE OverloadedStrings #-}
 -- | Method routing table and execution.
 module Network.JsonRpc.Server
-    ( MethodsTable
-    , methodsTable
-    , Method
-    , method
-    , methodAsync
-    , executeRequest
-    , runRequest
-    , Message
-    -- * Handy reexports
-    , module X
-    )  where
+  ( MethodsTable
+  , methodsTable
+  , Method
+  , method
+  , methodAsync
+  , executeRequest
+  , runRequest
+  , Message
+  -- * Handy reexports
+  , module X
+  )  where
 
-import           Control.Monad.IO.Class (MonadIO, liftIO)
-import           Data.Aeson (FromJSON, ToJSON, Value)
-import qualified Data.Aeson as J
-import qualified Data.Aeson.Types as J
-import qualified Data.ByteString.Lazy as LB
-import           Data.Foldable
-import           Data.HashMap.Strict (HashMap)
-import qualified Data.HashMap.Strict as HashMap
-import           Data.Maybe (fromMaybe)
-import           Data.Text (Text)
+import Control.Monad.IO.Class (MonadIO, liftIO)
+import Data.Aeson             (FromJSON, ToJSON, Value)
+import Data.Aeson             qualified as J
+import Data.Aeson.Types       qualified as J
+import Data.ByteString.Lazy   qualified as LB
+import Data.Foldable
+import Data.HashMap.Strict    (HashMap)
+import Data.HashMap.Strict    qualified as HashMap
+import Data.Maybe             (fromMaybe)
+import Data.Text              (Text)
 
-import           Network.JsonRpc.Errors
-    (Error, invalidParams, methodNotFound, parseError)
-import           Network.JsonRpc.Types
+import Network.JsonRpc.Errors (Error, invalidParams, methodNotFound, parseError)
+import Network.JsonRpc.Types
     (MethodName (..), Request (..), RequestId (..), Response (..))
 
-import qualified Network.JsonRpc.Errors as X
+import Network.JsonRpc.Errors qualified as X
 
-import qualified Network.JsonRpc.Types as X
+import Network.JsonRpc.Types  qualified as X
 
 
 -- | Handy alias for 'LB.ByteString'.
@@ -86,8 +85,8 @@ parseParams :: FromJSON a
             => Request Value
             -> Either (Response String ()) a
 parseParams req = case J.parseEither J.parseJSON reqNull of
-                Left e -> Left $ invalidParams rid (Just e)
-                Right r -> pure r
+  Left e -> Left $ invalidParams rid (Just e)
+  Right r -> pure r
   where
     rid = fromMaybe (RequestIdString "") (requestId req)
     reqNull = fromMaybe J.Null (requestParams req)
@@ -105,8 +104,8 @@ runRequest
   -> MethodsTable c m
   -> m ()
 runRequest send c lbs table = case decodeRequest lbs of
-      Left e -> liftIO $ send e
-      Right req -> executeRequest table send c req
+  Left e -> liftIO $ send e
+  Right req -> executeRequest table send c req
 
 -- | Execute parsed request
 executeRequest
@@ -125,17 +124,17 @@ executeRequest table send c req =
 decodeRequest :: FromJSON b => LB.ByteString -> Either Message b
 decodeRequest lbs =
   case J.eitherDecode lbs of
-     Left e -> Left $ J.encode (parseError (Just e) :: Response String ())
-     Right req -> pure req
+    Left e -> Left $ J.encode (parseError (Just e) :: Response String ())
+    Right req -> pure req
 
 -- | Find method in methods table
 findMethod :: MethodsTable c m
            -> Request Value
            -> Either (Maybe Message) (Method c m)
 findMethod table req =
-    case HashMap.lookup (requestMethod req) table of
-      Nothing -> Left $ case requestId req of
-        Nothing -> Nothing
-        Just rid -> Just $ J.encode (methodNotFound rid nothingAtAll :: Response () ())
-      Just m -> Right m
+  case HashMap.lookup (requestMethod req) table of
+    Nothing -> Left $ case requestId req of
+      Nothing -> Nothing
+      Just rid -> Just $ J.encode (methodNotFound rid nothingAtAll :: Response () ())
+    Just m -> Right m
 

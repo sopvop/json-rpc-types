@@ -39,7 +39,8 @@ steps:
       align: global
       list_align: with_alias
       long_list_align: new_line
-      pad_module_names: false
+      pa_dmodule_names: false
+      post_qualify: true
 
 
   # Language pragmas
@@ -83,5 +84,15 @@ language_extensions:
   - FlexibleContexts
   - ExplicitNamespaces
   - ExplicitForAll
+  - DeriveGeneric
+  - DerivingStrategies
+  - GeneralizedNewtypeDeriving
+  - InstanceSigs
+  - LambdaCase
+  - OverloadedStrings
+  - RecordWildCards
+  - ScopedTypeVariables
+  - TypeApplications
+
   # - TemplateHaskell
   # - QuasiQuotes
