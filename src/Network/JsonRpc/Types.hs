@@ -10,13 +10,14 @@ module Network.JsonRpc.Types
   ) where
 
 import Data.Aeson
-    (FromJSON (..), ToJSON (..), Value (String), object, pairs, withObject,
-    (.:), (.:?), (.=))
-import Data.Hashable (Hashable (..))
-import Data.Int      (Int64)
-import Data.Maybe    (catMaybes)
-import Data.Text     (Text)
-import GHC.Generics  (Generic)
+    (FromJSON (..), ToJSON (..), Value (Null, String), object, pairs,
+    withObject, (.:), (.:?), (.=))
+import Data.Aeson.Types qualified as J
+import Data.Hashable    (Hashable (..))
+import Data.Int         (Int64)
+import Data.Maybe       (catMaybes)
+import Data.Text        (Text)
+import GHC.Generics     (Generic)
 
 -- | Request id, either Int53 or string
 data RequestId
@@ -56,27 +57,34 @@ newtype MethodName = MethodName { unMethodName :: Text }
 data Request a = Request
   { requestId     :: !(Maybe RequestId)
   , requestMethod :: !MethodName
-  , requestParams :: !(Maybe a)
+  , requestParams :: !a
   } deriving stock (Show, Generic)
 
 instance FromJSON a => FromJSON (Request a) where
   parseJSON = withObject "json-rpc call" $ \o ->
-     Request <$> o .:? "id"
-             <*> o .: "method"
-             <*> o .:? "params"
+    Request <$> o .:? "id"
+            <*> o .: "method"
+            <*> parseParams o
+    where
+      parseParams o = do
+        r <- o .:? "params"
+        case r of
+          Nothing -> J.parserCatchError (parseJSON Null) $ \path msg ->
+            J.parserThrowError (path <> [J.Key "params"]) msg
+          Just v -> pure v
 
 instance ToJSON a => ToJSON (Request a) where
   toJSON (Request cid m ps) =
       object $ ("jsonrpc", String "2.0")
         : catMaybes [ ("id" .=) <$> cid
                     , Just ("method" .= m)
-                    , ("params" .=) <$> ps ]
+                    , Just ("params" .= ps) ]
 
   toEncoding (Request cid m ps) =
       pairs $ "jsonrpc" .= ("2.0" :: Text)
            <> maybe mempty ("id" .=) cid
            <> "method" .= m
-           <> maybe mempty ("params" .=) ps
+           <> "params" .= ps
 
   {-# INLINABLE toEncoding #-}
   {-# INLINABLE toJSON #-}
